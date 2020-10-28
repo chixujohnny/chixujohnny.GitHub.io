@@ -2,8 +2,157 @@
 layout: default
 ---
 
-## Welcome to another page
+# XGB原理
 
-_yay_
+# 前言
+因为XGB是GBDT的工业界进化版本，所以先将GBDT，再讲XGB再此基础上的进化部分。
 
-[back](./)
+
+**树模型的优点：**
+
+1. **可解释性强**
+1. **可处理混合类型的特征**
+1. **不用归一化处理**
+1. **有特征组合的作用**
+1. **可自然的处理缺失值**
+1. **对异常点鲁棒性较强·**
+1. **有特征选择的作用**
+1. **可扩展性强，容易并行**
+
+
+
+**缺点：**
+
+1. **缺乏平滑性**
+1. **不适合处理高维度稀疏的数据**
+
+
+
+# 全局框架
+![image.png](https://cdn.nlark.com/yuque/0/2020/png/1173836/1590577481791-ad2034af-c7c7-4c8b-9d6e-02915af704ce.png#align=left&display=inline&height=214&margin=%5Bobject%20Object%5D&name=image.png&originHeight=428&originWidth=1292&size=50872&status=done&style=none&width=646)
+
+
+      XGB是一个由多个base classifier（CART回归树）弱分类器串行Boosting组成的一种Esemble(集成学习)模型，**每个弱分类器在上一个弱分类器的残差（平方损失函数Loss值）基础上进行训练。**
+
+
+      对弱分类器的要求是**足够简单**，这样每个弱分类器都是**低variance高bias的**，因为训练的过程是通过降低bias来不断提高最终分类器的精度，最终的总分类器是将每轮训练得到的弱分类器加权求和得到的。
+
+
+      关于什么是bias和variance可以看我的这个文章：[https://www.yuque.com/docs/share/b9e3cf43-0cc8-44d8-a6dd-17a49b264e19?#](https://www.yuque.com/docs/share/b9e3cf43-0cc8-44d8-a6dd-17a49b264e19?#)
+# CART回归树
+
+
+      讲清楚CART意义重大，因为CART是base classifier，也是重点考察项。
+CART回归树又叫**最小二乘回归树**。
+这里先不讲CART分类树，因为GBDT用的是Boosting只能用回归树，不能用分类树。
+
+
+## CART回归树建立算法
+
+
+1. 依次遍历每个特征 ![](https://cdn.nlark.com/yuque/__latex/363b122c528f54df4a0446b6bab05515.svg#card=math&code=j&height=18&width=7) 中的每个取值 ![](https://cdn.nlark.com/yuque/__latex/03c7c0ace395d80182db07ae2c30f034.svg#card=math&code=s&height=12&width=8) ，将所有样本分成两拨，一拨是特征 ![](https://cdn.nlark.com/yuque/__latex/363b122c528f54df4a0446b6bab05515.svg#card=math&code=j&height=18&width=7) 值小于等于 ![](https://cdn.nlark.com/yuque/__latex/03c7c0ace395d80182db07ae2c30f034.svg#card=math&code=s&height=12&width=8) 的，另一拨是特征值 ![](https://cdn.nlark.com/yuque/__latex/363b122c528f54df4a0446b6bab05515.svg#card=math&code=j&height=18&width=7) 大于 ![](https://cdn.nlark.com/yuque/__latex/03c7c0ace395d80182db07ae2c30f034.svg#card=math&code=s&height=12&width=8) 的。现在样本被划分到了二叉树的两个叶子节点。
+
+
+
+
+2. **初始化**计算2个叶子节点的 ![](https://cdn.nlark.com/yuque/__latex/5d28a7ba1a44a73b8c2ed21321697c59.svg#card=math&code=%5Chat%7By%7D&height=18&width=9) ，也就是target，分三种情况：
+   1. 二分类问题，取这坨样本的label均值，比如有5个样本的label是[0,0,0,1,1]，那么 ![](https://cdn.nlark.com/yuque/__latex/5d28a7ba1a44a73b8c2ed21321697c59.svg#card=math&code=%5Chat%7By%7D&height=18&width=9) 就是0.4
+   1. 多分类问题，因为我们会提前对label做one-hot，比如一个属于第二类别的样本的label就会被打作[0,1,0]，后面 ![](https://cdn.nlark.com/yuque/__latex/5d28a7ba1a44a73b8c2ed21321697c59.svg#card=math&code=%5Chat%7By%7D&height=18&width=9) 的计算跟二分类问题是一样的
+   1. 回归问题，依旧取这坨样本label的均值，只不过不像分类问题那种都是0和1的离散值，而是连续值
+
+如果非初始化的话，那么拟合的
+
+3. 计算损失函数值，损失函数是**均方差，也就是MSE**，公式如下：
+
+                            ![](https://cdn.nlark.com/yuque/__latex/d4bb558e4b13cddea57961e9a13cf6ca.svg#card=math&code=Loss%3Dargmin_%7Bj%2Cs%7D%5B%20min_%7Bleft%7D%5Csum%20%28%5Chat%7By%7D-c_%7Bi%7D%5E%7Bl%7D%29%5E2%20%2B%20min_%7Bright%7D%5Csum%20%28%5Chat%7By%7D-c_%7Bj%7D%5E%7Br%7D%29%5E2%20%5D&height=28&width=452)
+
+    ![](https://cdn.nlark.com/yuque/__latex/e3bbf415a943b0b3d236b9ded0263c57.svg#card=math&code=c_%7Bi%7D%5E%7Bl%7D&height=23&width=12) 表示左分支的其中一个样本label值，![](https://cdn.nlark.com/yuque/__latex/929cdaa248c7600ffb65517c167920d4.svg#card=math&code=c_%7Bj%7D%5E%7Br%7D&height=23&width=14) 同理是右分支
+
+3. 当我们遍历完所有的 ![](https://cdn.nlark.com/yuque/__latex/363b122c528f54df4a0446b6bab05515.svg#card=math&code=j&height=18&width=7) 和 ![](https://cdn.nlark.com/yuque/__latex/03c7c0ace395d80182db07ae2c30f034.svg#card=math&code=s&height=12&width=8) 之后，选择一个能让 ![](https://cdn.nlark.com/yuque/__latex/14781ee5e859104d453ad3eb28b441e5.svg#card=math&code=Loss&height=16&width=35) 最小的 ![](https://cdn.nlark.com/yuque/__latex/363b122c528f54df4a0446b6bab05515.svg#card=math&code=j&height=18&width=7) 和 ![](https://cdn.nlark.com/yuque/__latex/03c7c0ace395d80182db07ae2c30f034.svg#card=math&code=s&height=12&width=8) 作为该分支的切分特征和切分值**也就是说，第3步计算均方差的目的是为了找哪个分裂点是最合适的，找到最合适的点（比如年龄<25被分到左子树，>=25被分到右子树这种）。****注意回归树用的是MSE，Gini指数实在分类树上用的不要搞混！**
+
+3. 此时样本被切分到了两个空间中，以此类推继续切分，直到不能切分为止。
+
+
+
+## CART回归树的停止建树条件
+
+- 树深度达到阈值
+- 叶子节点数量达到阈值
+- 准备分裂节点时，发现剩下的样本数量小于某个阈值
+
+
+
+## CART剪枝
+
+- 用验证数据集对生成的树进行剪枝并选择最优子树，损失函数最小作为剪枝的标准。
+- 剪枝的目的是增强泛化能力。
+- 剪枝策略同样在分类问题是**基尼指数**，回归问题是**均方差**。
+- 剪枝有点类似线性回归的正则化。
+- **CART剪枝采用的是后剪枝法，即先生成决策树，然后产生所有剪枝后的CART树，然后使用交叉验证检验剪枝的效果，选择泛化能力最好的剪枝策略。**
+
+
+
+# GBDT
+
+
+上面讲完了GBDT中的“DT”（虽然叫DT，也是在做分类问题这件事，但实际上是回归树）
+然后开始讲“GB”，这里的B指的是集成学习中的Boosting思想。
+
+## Boosting
+
+
+Boosting的2个核心问题：
+**1）在每一轮如何改变训练数据的权值和概率分布？**
+通过提高在前一轮被弱分类器分错样例的权值，减小前一轮分对样例的权值，增大分错样例的权值，来使得分类器对误分的数据有较好的效果。
+2）通过什么方式组合弱分类器？
+加法模型对弱分类器进行线性组合，比如Boosting Tree通过拟合残差的方式逐步减小残差，将每一步生成的模型叠加得到最终模型。
+
+注意：
+1）Boosting每轮训练弱分类器，塞进去的样本是一样的，但训练的时候训练样本的权重不一样。
+ 
+
+# 备注笔记
+
+
+**XGB支持并行化怎么解释？**
+选择最佳分类点，进行枚举的时候，这是梯度提升树最耗时的地方，XGB在这里做了并行化，提效。同层级节点可并行。具体的对于某个节点，节点内选择最佳分裂点，候选分裂点计算增益用多线程并行。
+
+
+**XGB和GBDT的区别？**
+
+- 第一，GBDT将目标函数泰勒展开到一阶，而xgboost将目标函数泰勒展开到了二阶。保留了更多有关目标函数的信息，对提升效果有帮助。
+- 第二，GBDT是给新的基模型寻找新的拟合标签（前面加法模型的负梯度），而xgboost是给新的基模型寻找新的目标函数（目标函数关于新的基模型的二阶泰勒展开）。
+- 第三，xgboost加入了和叶子权重的L2正则化项，因而有利于模型获得更低的方差。
+- 第四，xgboost增加了自动处理缺失值特征的策略。通过把带缺失值样本分别划分到左子树或者右子树，比较两种方案下目标函数的优劣，从而自动对有缺失值的样本进行划分，无需对缺失特征进行填充预处理。
+
+
+
+**XGB跟深度学习的关系？**
+不同的机器学习模型适应不同的任务，DNN通过对**时空位置建模**能够很好的捕获图像、语音、文本等高维数据。
+基于树模型的XGB则能够很好的**处理表格数据**，同时还有一些DNN所不具备的特性（可解释性、易于调参、不用归一化、可自动处理缺失值...）
+
+
+**一共有多少种模型融合方法？**
+
+- **平均法、投票法**：对各个模型按平均/加权平均（回归），或投票/加权投票的方式得出结果。
+- **Bagging**：Bagging集成方法有两个关键：Bootstrap和Aggregation。对包含 ![](https://cdn.nlark.com/yuque/__latex/6f8f57715090da2632453988d9a1501b.svg#card=math&code=m&height=12&width=14) 个样本的数据集，进行 ![](https://cdn.nlark.com/yuque/__latex/6f8f57715090da2632453988d9a1501b.svg#card=math&code=m&height=12&width=14) 次有放回的随机采样，可以得到包含 ![](https://cdn.nlark.com/yuque/__latex/6f8f57715090da2632453988d9a1501b.svg#card=math&code=m&height=12&width=14) 个样本的采样集，有可能有重复的样本。然后重复 ![](https://cdn.nlark.com/yuque/__latex/b9ece18c950afbfa6b0fdbfa4ff731d3.svg#card=math&code=T&height=16&width=12) 次，得到 ![](https://cdn.nlark.com/yuque/__latex/b9ece18c950afbfa6b0fdbfa4ff731d3.svg#card=math&code=T&height=16&width=12) 个采样集，这样就能训练出 ![](https://cdn.nlark.com/yuque/__latex/b9ece18c950afbfa6b0fdbfa4ff731d3.svg#card=math&code=T&height=16&width=12) 个模型，再对它们进行平均法/投票法融合，这就是Bagging的基本流程。因为Bagging采用重采样的方式，各个模型的相关性并不高，所以可以降低variance，而没有针对bias进行优化，所以Bagging是通过重采样的方式降低了模型过拟合的可能性。（另一种著名的集成学习方法叫Boosting，重点针对bias进行优化，但Boosting不属于模型融合范畴）
+- **Stacking**：先从初始的训练集训练出若干单模型，然后把单模型的数据结果作为样本特征进行整合，生成新的训练集。再根据新的训练集训练一个新的模型，最后用新的模型对样本进行预测，下图以二级Stacking为例：
+![image.png](https://cdn.nlark.com/yuque/0/2020/png/1173836/1599558270446-a4a18a32-61df-493a-9ae3-d03fc92ac7ea.png#align=left&display=inline&height=507&margin=%5Bobject%20Object%5D&name=image.png&originHeight=1014&originWidth=2262&size=1849406&status=done&style=none&width=1131)
+实战中，一般用到两阶模型就够了。一阶模型一般是一个相对比较复杂的模型，因为要输入原始特征一般会比较多，可以用XGB做一阶模型。五折交叉验证之后，会产出5个模型，用这5个模型分别在这5份Predict上做预测，就会产出5个浮点数长得像score一样的特征，举个例子，原始特征为：
+
+| user_id | f1 | f2 | f3 | f4 | ... | fn | label |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| 20881 | 0.2 | 23 | 1 | 231 | ... | 0.9 | 1 |
+| ... |  |  |  |  |  |  |  |
+
+每个model产出之后预测就会得到一个score，因为上面是五折交叉验证，所以就有5个model，所以下面的        二阶模型就有了5个线性的浮点数特征，形如：
+
+| user_id | score-1 | score-2 | score-3 | score-4 | score-5 | label |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| 20881 | 0.72 | 0.69 | 0.81 | 0.77 | 0.73 | 1 |
+| 20882 | 0.12 | 0.09 | 0.08 | 0.11 | 0.15 | 0 |
+| ... |  |  |  |  |  |  |
+
+
+
+将上面的feature-label作为训练样本再次训练，就得到的二阶模型，二阶模型选一个比较简单的线性模型就行了，一般用LR。所以五折stacking一共训练出来了6个模型，5个一阶模型 + 1个二阶模型。
