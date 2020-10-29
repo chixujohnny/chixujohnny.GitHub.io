@@ -35,18 +35,24 @@ XGB是一个由多个base classifier（CART回归树）弱分类器串行Boostin
 ## CART回归树建立算法
 
 
-1. 依次遍历每个特征 ![](https://cdn.nlark.com/yuque/__latex/363b122c528f54df4a0446b6bab05515.svg#card=math&code=j&height=18&width=7) 中的每个取值 ![](https://cdn.nlark.com/yuque/__latex/03c7c0ace395d80182db07ae2c30f034.svg#card=math&code=s&height=12&width=8) ，将所有样本分成两拨，一拨是特征 ![](https://cdn.nlark.com/yuque/__latex/363b122c528f54df4a0446b6bab05515.svg#card=math&code=j&height=18&width=7) 值小于等于 ![](https://cdn.nlark.com/yuque/__latex/03c7c0ace395d80182db07ae2c30f034.svg#card=math&code=s&height=12&width=8) 的，另一拨是特征值 ![](https://cdn.nlark.com/yuque/__latex/363b122c528f54df4a0446b6bab05515.svg#card=math&code=j&height=18&width=7) 大于 ![](https://cdn.nlark.com/yuque/__latex/03c7c0ace395d80182db07ae2c30f034.svg#card=math&code=s&height=12&width=8) 的。现在样本被划分到了二叉树的两个叶子节点。<br />
+1. 依次遍历每个特征 $$j$$ 中的每个取值 $$s$$ ，将所有样本分成两拨，一拨是特征 $$j$$ 值小于等于 $$s$$ 的，另一拨是特征值 $$j$$ 大于 $$s$$ 的。现在样本被划分到了二叉树的两个叶子节点。
 
-2. **初始化**计算2个叶子节点的 ![](https://cdn.nlark.com/yuque/__latex/5d28a7ba1a44a73b8c2ed21321697c59.svg#card=math&code=%5Chat%7By%7D&height=18&width=9) ，也就是target，分三种情况：
-   1. 二分类问题，取这坨样本的label均值，比如有5个样本的label是[0,0,0,1,1]，那么 ![](https://cdn.nlark.com/yuque/__latex/5d28a7ba1a44a73b8c2ed21321697c59.svg#card=math&code=%5Chat%7By%7D&height=18&width=9) 就是0.4
-   1. 多分类问题，因为我们会提前对label做one-hot，比如一个属于第二类别的样本的label就会被打作[0,1,0]，后面 ![](https://cdn.nlark.com/yuque/__latex/5d28a7ba1a44a73b8c2ed21321697c59.svg#card=math&code=%5Chat%7By%7D&height=18&width=9) 的计算跟二分类问题是一样的
+<br />
+
+2. **初始化**计算2个叶子节点的 $$\hat{y}$$ ，也就是target，分三种情况：
+   1. 二分类问题，取这坨样本的label均值，比如有5个样本的label是[0,0,0,1,1]，那么 $$\hat{y}$$ 就是0.4
+   1. 多分类问题，因为我们会提前对label做one-hot，比如一个属于第二类别的样本的label就会被打作[0,1,0]，后面 $$\hat{y}$$ 的计算跟二分类问题是一样的
    1. 回归问题，依旧取这坨样本label的均值，只不过不像分类问题那种都是0和1的离散值，而是连续值
 
-3. 计算损失函数值，损失函数是**均方差，也就是MSE**，公式如下：
-![](https://cdn.nlark.com/yuque/__latex/d4bb558e4b13cddea57961e9a13cf6ca.svg#card=math&code=Loss%3Dargmin_%7Bj%2Cs%7D%5B%20min_%7Bleft%7D%5Csum%20%28%5Chat%7By%7D-c_%7Bi%7D%5E%7Bl%7D%29%5E2%20%2B%20min_%7Bright%7D%5Csum%20%28%5Chat%7By%7D-c_%7Bj%7D%5E%7Br%7D%29%5E2%20%5D&height=28&width=452)
-![](https://cdn.nlark.com/yuque/__latex/e3bbf415a943b0b3d236b9ded0263c57.svg#card=math&code=c_%7Bi%7D%5E%7Bl%7D&height=23&width=12) 表示左分支的其中一个样本label值，![](https://cdn.nlark.com/yuque/__latex/929cdaa248c7600ffb65517c167920d4.svg#card=math&code=c_%7Bj%7D%5E%7Br%7D&height=23&width=14) 同理是右分支
+如果非初始化的话，那么拟合的
 
-3. 当我们遍历完所有的 ![](https://cdn.nlark.com/yuque/__latex/363b122c528f54df4a0446b6bab05515.svg#card=math&code=j&height=18&width=7) 和 ![](https://cdn.nlark.com/yuque/__latex/03c7c0ace395d80182db07ae2c30f034.svg#card=math&code=s&height=12&width=8) 之后，选择一个能让 ![](https://cdn.nlark.com/yuque/__latex/14781ee5e859104d453ad3eb28b441e5.svg#card=math&code=Loss&height=16&width=35) 最小的 ![](https://cdn.nlark.com/yuque/__latex/363b122c528f54df4a0446b6bab05515.svg#card=math&code=j&height=18&width=7) 和 ![](https://cdn.nlark.com/yuque/__latex/03c7c0ace395d80182db07ae2c30f034.svg#card=math&code=s&height=12&width=8) 作为该分支的切分特征和切分值**也就是说，第3步计算均方差的目的是为了找哪个分裂点是最合适的，找到最合适的点（比如年龄<25被分到左子树，>=25被分到右子树这种）。****注意回归树用的是MSE，Gini指数实在分类树上用的不要搞混！**
+3. 计算损失函数值，损失函数是**均方差，也就是MSE**，公式如下：
+
+                            $$Loss=argmin_{j,s}[ min_{left}\sum (\hat{y}-c_{i}^{l})^2 + min_{right}\sum (\hat{y}-c_{j}^{r})^2 ]$$
+
+    $$c_{i}^{l}$$ 表示左分支的其中一个样本label值，$$c_{j}^{r}$$ 同理是右分支
+
+3. 当我们遍历完所有的 $$j$$ 和 $$s$$ 之后，选择一个能让 $$Loss$$ 最小的 $$j$$ 和 $$s$$ 作为该分支的切分特征和切分值**也就是说，第3步计算均方差的目的是为了找哪个分裂点是最合适的，找到最合适的点（比如年龄<25被分到左子树，>=25被分到右子树这种）。****注意回归树用的是MSE，Gini指数实在分类树上用的不要搞混！**
 
 3. 此时样本被切分到了两个空间中，以此类推继续切分，直到不能切分为止。
 
@@ -97,10 +103,10 @@ Boosting的2个核心问题：<br />**1）在每一轮如何改变训练数据�
 <br />**一共有多少种模型融合方法？**
 
 - **平均法、投票法**：对各个模型按平均/加权平均（回归），或投票/加权投票的方式得出结果。
-- **Bagging**：Bagging集成方法有两个关键：Bootstrap和Aggregation。对包含 ![](https://cdn.nlark.com/yuque/__latex/6f8f57715090da2632453988d9a1501b.svg#card=math&code=m&height=12&width=14) 个样本的数据集，进行 ![](https://cdn.nlark.com/yuque/__latex/6f8f57715090da2632453988d9a1501b.svg#card=math&code=m&height=12&width=14) 次有放回的随机采样，可以得到包含 ![](https://cdn.nlark.com/yuque/__latex/6f8f57715090da2632453988d9a1501b.svg#card=math&code=m&height=12&width=14) 个样本的采样集，有可能有重复的样本。然后重复 ![](https://cdn.nlark.com/yuque/__latex/b9ece18c950afbfa6b0fdbfa4ff731d3.svg#card=math&code=T&height=16&width=12) 次，得到 ![](https://cdn.nlark.com/yuque/__latex/b9ece18c950afbfa6b0fdbfa4ff731d3.svg#card=math&code=T&height=16&width=12) 个采样集，这样就能训练出 ![](https://cdn.nlark.com/yuque/__latex/b9ece18c950afbfa6b0fdbfa4ff731d3.svg#card=math&code=T&height=16&width=12) 个模型，再对它们进行平均法/投票法融合，这就是Bagging的基本流程。因为Bagging采用重采样的方式，各个模型的相关性并不高，所以可以降低variance，而没有针对bias进行优化，所以Bagging是通过重采样的方式降低了模型过拟合的可能性。（另一种著名的集成学习方法叫Boosting，重点针对bias进行优化，但Boosting不属于模型融合范畴）
-- **Stacking**：先从初始的训练集训练出若干单模型，然后把单模型的数据结果作为样本特征进行整合，生成新的训练集。再根据新的训练集训练一个新的模型，最后用新的模型对样本进行预测，下图以二级Stacking为例：
+- **Bagging**：Bagging集成方法有两个关键：Bootstrap和Aggregation。对包含 $$m$$ 个样本的数据集，进行 $$m$$ 次有放回的随机采样，可以得到包含 $$m$$ 个样本的采样集，有可能有重复的样本。然后重复 $$T$$ 次，得到 $$T$$ 个采样集，这样就能训练出 $$T$$ 个模型，再对它们进行平均法/投票法融合，这就是Bagging的基本流程。因为Bagging采用重采样的方式，各个模型的相关性并不高，所以可以降低variance，而没有针对bias进行优化，所以Bagging是通过重采样的方式降低了模型过拟合的可能性。（另一种著名的集成学习方法叫Boosting，重点针对bias进行优化，但Boosting不属于模型融合范畴）
+- **Stacking**：先从初始的训练集训练出若干单模型，然后把单模型的数据结果作为样本特征进行整合，生成新的训练集。再根据新的训练集训练一个新的模型，最后用新的模型对样本进行预测，下图以二级Stacking为例
 
- ![image.png](https://cdn.nlark.com/yuque/0/2020/png/1173836/1599558270446-a4a18a32-61df-493a-9ae3-d03fc92ac7ea.png#align=left&display=inline&height=507&margin=%5Bobject%20Object%5D&name=image.png&originHeight=1014&originWidth=2262&size=1849406&status=done&style=none&width=1131)
+![image.png](https://cdn.nlark.com/yuque/0/2020/png/1173836/1599558270446-a4a18a32-61df-493a-9ae3-d03fc92ac7ea.png#align=left&display=inline&height=507&margin=%5Bobject%20Object%5D&name=image.png&originHeight=1014&originWidth=2262&size=1849406&status=done&style=none&width=1131)
 
 实战中，一般用到两阶模型就够了。一阶模型一般是一个相对比较复杂的模型，因为要输入原始特征一般会比较多，可以用XGB做一阶模型。五折交叉验证之后，会产出5个模型，用这5个模型分别在这5份Predict上做预测，就会产出5个浮点数长得像score一样的特征，举个例子，原始特征为：
 
