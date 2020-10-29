@@ -1,6 +1,6 @@
 # XGB原理解析
 
-# 前言
+## 前言
         <br />        因为XGB是GBDT的工业界进化版本，所以先将GBDT，再讲XGB再此基础上的进化部分。<br />
 <br />**树模型的优点：**
 
@@ -21,18 +21,18 @@
 
 
 
-# 全局框架
+## 全局框架
 
 ![image0](https://github.com/chixujohnny/chixujohnny.Github.io/blob/master/assets/img/image0.png?raw=true)
 
 XGB是一个由多个base classifier（CART回归树）弱分类器串行Boosting组成的一种Esemble(集成学习)模型，**每个弱分类器在上一个弱分类器的残差（平方损失函数Loss值）基础上进行训练。**<br />
 <br />      对弱分类器的要求是**足够简单**，这样每个弱分类器都是**低variance高bias的**，因为训练的过程是通过降低bias来不断提高最终分类器的精度，最终的总分类器是将每轮训练得到的弱分类器加权求和得到的。<br />
 <br />      关于什么是bias和variance可以看我的这个文章：[https://www.yuque.com/docs/share/b9e3cf43-0cc8-44d8-a6dd-17a49b264e19?#](https://www.yuque.com/docs/share/b9e3cf43-0cc8-44d8-a6dd-17a49b264e19?#)
-# CART回归树
+## CART回归树
 
 <br />      讲清楚CART意义重大，因为CART是base classifier，也是重点考察项。<br />CART回归树又叫**最小二乘回归树**。<br />这里先不讲CART分类树，因为GBDT用的是Boosting只能用回归树，不能用分类树。<br />
 
-## CART回归树建立算法
+### CART回归树建立算法
 
 
 1. 依次遍历每个特征 $$j$$ 中的每个取值 $$s$$ ，将所有样本分成两拨，一拨是特征 $$j$$ 值小于等于 $$s$$ 的，另一拨是特征值 $$j$$ 大于 $$s$$ 的。现在样本被划分到了二叉树的两个叶子节点。
@@ -50,7 +50,7 @@ XGB是一个由多个base classifier（CART回归树）弱分类器串行Boostin
 
 
 
-## CART回归树的停止建树条件
+### CART回归树的停止建树条件
 
 - 树深度达到阈值
 - 叶子节点数量达到阈值
@@ -58,7 +58,7 @@ XGB是一个由多个base classifier（CART回归树）弱分类器串行Boostin
 
 
 
-## CART剪枝
+### CART剪枝
 
 - 用验证数据集对生成的树进行剪枝并选择最优子树，损失函数最小作为剪枝的标准。
 - 剪枝的目的是增强泛化能力。
@@ -68,19 +68,19 @@ XGB是一个由多个base classifier（CART回归树）弱分类器串行Boostin
 
 
 
-# GBDT
+## GBDT
 
 
 上面讲完了GBDT中的“DT”（虽然叫DT，也是在做分类问题这件事，但实际上是回归树）<br />然后开始讲“GB”，这里的B指的是集成学习中的Boosting思想。
 
-## Boosting
+### Boosting
 
 
 Boosting的2个核心问题：<br />**1）在每一轮如何改变训练数据的权值和概率分布？**<br />通过提高在前一轮被弱分类器分错样例的权值，减小前一轮分对样例的权值，增大分错样例的权值，来使得分类器对误分的数据有较好的效果。<br />2）通过什么方式组合弱分类器？<br />加法模型对弱分类器进行线性组合，比如Boosting Tree通过拟合残差的方式逐步减小残差，将每一步生成的模型叠加得到最终模型。
 
 注意：<br />1）Boosting每轮训练弱分类器，塞进去的样本是一样的，但训练的时候训练样本的权重不一样。<br /> 
 
-# 备注笔记
+## 备注笔记
 
 <br />**XGB支持并行化怎么解释？**<br />选择最佳分类点，进行枚举的时候，这是梯度提升树最耗时的地方，XGB在这里做了并行化，提效。同层级节点可并行。具体的对于某个节点，节点内选择最佳分裂点，候选分裂点计算增益用多线程并行。<br />
 <br />**XGB和GBDT的区别？**
