@@ -9,7 +9,7 @@ layout: default
 - [03.Where does the error come from_](./posts/03.Where does the error come from_.md)<br/>
 - [04.Gradient Descent](./posts/04.Gradient Descent.md)<br/>
 - [05.Classification Probabilistic Generative Model](./posts/05.Classification Probabilistic Generative Model.md)<br/>
-- [06.What is Sigmoid function_](./posts/06.What is Sigmoid function_.md)<br/>
+- [06.What is Sigmoid function](./posts/06.What is Sigmoid function_.md)<br/>
 - [07.Logistic Regression](./posts/07.Logistic Regression.md)<br/>
 
 ## Industry
